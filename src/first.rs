@@ -73,11 +73,9 @@ impl Drop for List{
 #[cfg(test)]
 mod test{
     use super::List;
-    extern crate test;
-    use test::Bencher;
-
+    
     #[test]
-    fn test_first(){
+    fn basics(){
         // empty list;
         let mut stack : List = List::new();
         assert_eq!(stack.top(), None);
@@ -93,11 +91,5 @@ mod test{
         for i in 0..10{
             stack.push(i);
         }
-    }
-
-    #[bench]
-    #[ignore]
-    fn bench_test(b:&mut Bencher){
-        b.iter(||test_first());
     }
 }
