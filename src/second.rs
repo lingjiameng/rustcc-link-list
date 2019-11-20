@@ -41,9 +41,30 @@ impl<T> List<T>{
 impl<'a,T> Iterator for Iter<'a,T>{
     type Item = &'a T;
     fn next(&mut self) -> Option<Self::Item>{
-        self.next.map(|node|{
+        self.next.map(|node|{ // move happen here in form of copy
             self.next = node.next.as_ref().map(|node| &**node);
             &node.elem
+        })
+    }
+}
+
+/// stack mut iter: &mut iter, not consuming at all
+pub struct IterMut<'a,T>{
+    next: Option<&'a mut Node<T>>,
+}
+
+impl<T> List<T> {
+    pub fn iter_mut(&mut self)-> IterMut<'_,T>{
+        IterMut{ next: self.head.as_mut().map(|node| &mut **node)}
+    }
+}
+
+impl<'a,T> Iterator for IterMut<'a,T>{
+    type Item = &'a mut T;
+    fn next(&mut self) -> Option<Self::Item>{
+        self.next.take().map(|node|{ // no Copy for &mut, so move called, but behind &mut
+            self.next = node.next.as_mut().map(|node|&mut **node);
+            &mut node.elem
         })
     }
 }
@@ -144,10 +165,40 @@ mod test{
         for i in (0..3).rev(){
             assert_eq!(iter.next(), Some(&i));
         }
+        let mut iter2 = stack.iter();
+        let x = iter2.next().unwrap();
+        let y = iter2.next().unwrap();
+        let z = iter2.next().unwrap();
+        assert_eq!(*x, *y+1);
         assert_eq!(iter.next(), None);
+        assert_eq!(*y, *z+1);
         for i in (0..3).rev(){
             assert_eq!(stack.pop(), Some(i));        
         }
     }
 
+    #[test]
+    fn iter_mut() {
+        let mut stack :List<i32> = List::new();
+        for i in 0..3{
+            stack.push(i);   
+        }
+        let mut iter = stack.iter_mut();
+        for mut i in (0..3).rev(){
+            assert_eq!(iter.next(), Some(&mut i));
+        }
+        assert_eq!(iter.next(), None);
+        for i in (0..3).rev(){
+            assert_eq!(stack.pop(), Some(i));        
+        }
+        stack.push(1);stack.push(2);stack.push(3);
+        let mut iter = stack.iter_mut();
+        let x = iter.next().unwrap();
+        let y = iter.next().unwrap();
+        let z = iter.next().unwrap();
+        *x = 5;*y=4;*z=3;
+        assert_eq!(stack.pop(), Some(5));
+        assert_eq!(stack.pop(), Some(4));
+        assert_eq!(stack.pop(), Some(3));
+    }
 }
