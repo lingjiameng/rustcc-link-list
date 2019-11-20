@@ -9,66 +9,6 @@ pub struct Node<T>{
     next: Link<T>,
 }
 
-/// stack into iter : T , consume all data in stack
-pub struct IntoIter<T>(List<T>);
-
-impl<T> List<T>{
-    pub fn into_iter(self) -> IntoIter<T>{
-        IntoIter(self)
-    }
-}
-impl<T> Iterator for IntoIter<T>{
-    type Item = T;
-    fn next(&mut self)->Option<Self::Item>{
-        self.0.pop()
-    }
-}
-
-/// stack iter : &T , not consume any data in stack
-pub struct Iter<'a,T>{
-    next: Option<&'a Node<T>>,
-}
-
-impl<T> List<T>{
-    pub fn iter<'a>(&'a self) -> Iter<'a,T>{
-        Iter{ next: self.head.as_ref().map(|node| &**node) }
-        // bellow methods all are fine
-        // Iter{ next: self.head.as_ref().map(|node| node.as_ref()) }
-        // Iter{ next: self.head.as_ref().map::<&Node<T>,_>(|node| node) }
-    }
-}
-
-impl<'a,T> Iterator for Iter<'a,T>{
-    type Item = &'a T;
-    fn next(&mut self) -> Option<Self::Item>{
-        self.next.map(|node|{ // move happen here in form of copy
-            self.next = node.next.as_ref().map(|node| &**node);
-            &node.elem
-        })
-    }
-}
-
-/// stack mut iter: &mut iter, not consuming at all
-pub struct IterMut<'a,T>{
-    next: Option<&'a mut Node<T>>,
-}
-
-impl<T> List<T> {
-    pub fn iter_mut(&mut self)-> IterMut<'_,T>{
-        IterMut{ next: self.head.as_mut().map(|node| &mut **node)}
-    }
-}
-
-impl<'a,T> Iterator for IterMut<'a,T>{
-    type Item = &'a mut T;
-    fn next(&mut self) -> Option<Self::Item>{
-        self.next.take().map(|node|{ // no Copy for &mut, so move called, but behind &mut
-            self.next = node.next.as_mut().map(|node|&mut **node);
-            &mut node.elem
-        })
-    }
-}
-
 impl<T> List<T>{
     pub fn new() ->Self{
         List{ head: None }
@@ -96,6 +36,18 @@ impl<T> List<T>{
             &mut node.elem
         })
     }
+    pub fn into_iter(self) -> IntoIter<T>{
+        IntoIter(self)
+    }
+    pub fn iter<'a>(&'a self) -> Iter<'a,T>{
+        Iter{ next: self.head.as_ref().map(|node| &**node) }
+        // bellow methods all are fine
+        // Iter{ next: self.head.as_ref().map(|node| node.as_ref()) }
+        // Iter{ next: self.head.as_ref().map::<&Node<T>,_>(|node| node) }
+    }
+    pub fn iter_mut(&mut self)-> IterMut<'_,T>{
+        IterMut{ next: self.head.as_mut().map(|node| &mut **node)}
+    }
 }
 
 impl<T> Drop for List<T>{
@@ -108,6 +60,44 @@ impl<T> Drop for List<T>{
 }
 
 
+/// stack into iter : T , consume all data in stack
+pub struct IntoIter<T>(List<T>);
+
+impl<T> Iterator for IntoIter<T>{
+    type Item = T;
+    fn next(&mut self)->Option<Self::Item>{
+        self.0.pop()
+    }
+}
+/// stack iter : &T , not consume any data in stack
+pub struct Iter<'a,T>{
+    next: Option<&'a Node<T>>,
+}
+
+impl<'a,T> Iterator for Iter<'a,T>{
+    type Item = &'a T;
+    fn next(&mut self) -> Option<Self::Item>{
+        self.next.map(|node|{ // move happen here in form of copy
+            self.next = node.next.as_ref().map(|node| &**node);
+            &node.elem
+        })
+    }
+}
+
+/// stack mut iter: &mut iter, not consuming at all
+pub struct IterMut<'a,T>{
+    next: Option<&'a mut Node<T>>,
+}
+
+impl<'a,T> Iterator for IterMut<'a,T>{
+    type Item = &'a mut T;
+    fn next(&mut self) -> Option<Self::Item>{
+        self.next.take().map(|node|{ // no Copy for <&mut>, so move called, but behind &mut
+            self.next = node.next.as_mut().map(|node|&mut **node);
+            &mut node.elem
+        })
+    }
+}
 
 #[cfg(test)]
 mod test{
