@@ -1,4 +1,4 @@
-/// A stack impl by link list
+//! A stack(have iter) impl by link list
 pub struct List<T>{
     head: Link<T>,
 }
